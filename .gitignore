@@ -2,4 +2,5 @@
 data/
 logs/
 *.log
-models/.DS_Store
+*.DS_Store
+.venv/
