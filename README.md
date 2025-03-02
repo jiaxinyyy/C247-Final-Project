@@ -18,3 +18,10 @@
     - TODO: Try different data augmentation methods
 - ```config/*.yaml```
     - Adjust hyperparameters here for training
+
+To train:
+```
+!python -m emg2qwerty.train \
+  user="single_user" \
+  trainer.accelerator=gpu trainer.devices=1 trainer.max_epochs=30
+```
