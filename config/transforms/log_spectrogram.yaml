@@ -13,10 +13,25 @@ temporal_jitter:
   _target_: emg2qwerty.transforms.TemporalAlignmentJitter
   max_offset: 120  # Max 60ms jitter for 2kHz EMG
 
+time_stretch:
+  _target_: emg2qwerty.transforms.ForEach
+  transform: 
+    _target_: emg2qwerty.transforms.TimeStretch
+    hop_length: 32
+    n_freq: 33
+
 logspec:
   _target_: emg2qwerty.transforms.LogSpectrogram
   n_fft: 64
   hop_length: 16  # Downsamples from 2kHz to 125Hz
+
+lfcc_extraction:
+  _target_: emg2qwerty.transforms.LFCCExtraction
+  num_coeffs: 13  # Number of LFCCs to extract
+
+mfcc_extraction:
+  _target_: emg2qwerty.transforms.MFCCExtraction
+  num_mfccs: 13  # Number of LFCCs to extract
 
 specaug:
   _target_: emg2qwerty.transforms.SpecAugment
@@ -31,10 +46,13 @@ transforms:
     - ${band_rotation}
     - ${temporal_jitter}
     - ${logspec}
+    - ${time_stretch}
+    # - ${mfcc_extraction}
     - ${specaug}
 
   val:
     - ${to_tensor}
     - ${logspec}
+    # - ${lfcc_extraction}
 
   test: ${transforms.val}

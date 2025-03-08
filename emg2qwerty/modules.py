@@ -166,6 +166,7 @@ class MultiBandRotationInvariantMLP(nn.Module):
         outputs_per_band = [
             mlp(_input) for mlp, _input in zip(self.mlps, inputs_per_band)
         ]
+        
         return torch.stack(outputs_per_band, dim=self.stack_dim)
 
 
@@ -277,4 +278,5 @@ class TDSConvEncoder(nn.Module):
         self.tds_conv_blocks = nn.Sequential(*tds_conv_blocks)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        # print(f"TDSConvEncoder input shape: {inputs.shape}")
         return self.tds_conv_blocks(inputs)  # (T, N, num_features)

@@ -19,7 +19,6 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 from emg2qwerty import transforms, utils
 from emg2qwerty.transforms import Transform
 
-
 log = logging.getLogger(__name__)
 
 
