@@ -11,6 +11,7 @@ from typing import Any, TypeVar
 import numpy as np
 import torch
 import torchaudio
+import scipy
 
 
 TTransformIn = TypeVar("TTransformIn")
@@ -243,3 +244,77 @@ class SpecAugment:
 
         # (..., C, freq, T) -> (T, ..., C, freq)
         return x.movedim(-1, 0)
+
+@dataclass
+class TimeStretch:
+    """Applies time stretching augmentation and pads/truncates to a common length."""
+
+    min_rate: float = 0.95
+    max_rate: float = 1
+    hop_length: int | None = None  # Now correctly included
+    n_freq: int = 33
+    fixed_rate: float | None = None
+    target_channels: int = 16
+    pad_mode: str = 'fixed'  # 'max' or 'fixed'
+    fixed_length: int = 622
+    
+    
+    def __post_init__(self) -> None:
+        self.transform = torchaudio.transforms.TimeStretch(
+            n_freq=self.n_freq,
+            fixed_rate=self.fixed_rate,
+        )
+
+    def __call__(self, waveform: torch.Tensor) -> torch.Tensor:
+        # print(f"Original waveform shape: {waveform.shape}")
+
+        if self.fixed_rate is None:
+            rate = np.random.uniform(self.min_rate, self.max_rate)
+            self.transform.fixed_rate = rate
+
+        time_steps, channels, freq_bins = waveform.shape
+        # print(f"Shape after unpacking: time_steps={time_steps}, channels={channels}, freq_bins={freq_bins}")
+
+        # Step 3: Convert to complex spectrogram (real and imaginary parts)
+        real_part = waveform
+        imaginary_part = torch.zeros_like(real_part)
+        complex_spectrogram = torch.complex(real_part, imaginary_part)
+
+        # Step 4: Permute the tensor to [channels, freq_bins, time_steps]
+        complex_spectrogram = complex_spectrogram.permute(1, 2, 0)
+        # print(f"Shape after permute: {complex_spectrogram.shape}")
+
+        # Step 5: Apply time-stretch to each channel independently
+        stretched_complex = []
+        for channel in complex_spectrogram:
+            stretched_complex.append(self.transform(channel))
+        stretched_complex = torch.stack(stretched_complex, dim=0)
+
+        # Step 6: Get the real part of the stretched complex spectrogram
+        stretched_real = stretched_complex.real
+
+        # Step 7: Revert permute to get back to original shape [time_steps, channels, freq_bins]
+        stretched_real = stretched_real.permute(2, 0, 1)
+
+        # print(f"Final shape after time-stretching: {stretched_real.shape}")
+
+        # Step 8: Pad or truncate to a common length
+        time_steps = stretched_real.shape[0]
+
+        if self.pad_mode == 'max':
+            max_time_steps = max([tensor.shape[0] for tensor in [stretched_real]])
+            pad_size = max_time_steps - time_steps
+        elif self.pad_mode == 'fixed':
+            pad_size = self.fixed_length - time_steps
+        else:
+            raise ValueError(f"Invalid pad_mode: {self.pad_mode}")
+
+        if pad_size > 0:
+            stretched_real = torch.nn.functional.pad(stretched_real, (0, 0, 0, 0, 0, pad_size))
+        elif pad_size < 0:
+            stretched_real = stretched_real[:(time_steps + pad_size), :, :]
+
+        # print(f"Final shape after padding/truncating: {stretched_real.shape}")
+
+        return stretched_real
+
