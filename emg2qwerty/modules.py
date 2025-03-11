@@ -308,3 +308,14 @@ class RecurrentLayer(nn.Module):
         x, _ = self.lstm(x)  # LSTM outputs (T, N, hidden_size * 2 if bidirectional)
         return x
 
+class CNNLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
+        super().__init__()
+        self.layer = nn.Sequential(
+            nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding),
+            nn.BatchNorm1d(out_channels),
+            nn.ReLU(),
+        )
+
+    def forward(self, x):
+        return self.layer(x)

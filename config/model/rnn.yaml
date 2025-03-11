@@ -1,0 +1,13 @@
+# @package _global_
+module:
+  _target_: emg2qwerty.lightning.RNNCTCModule  # Updated for RNN-only model
+  in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
+  mlp_features: [384]  # Maintains the same MLP structure for feature extraction
+  rnn_hidden_size: 256  # Added RNN-specific parameter for hidden size
+  rnn_num_layers: 3  # Added RNN-specific parameter for number of layers
+  bidirectional: True  # Ensuring bidirectional RNN for improved sequence modeling
+
+datamodule:
+  _target_: emg2qwerty.lightning.WindowedEMGDataModule
+  window_length: 8000  # 4 sec windows for 2kHz EMG
+  padding: [1800, 200]  # 900ms past context, 100ms future context
