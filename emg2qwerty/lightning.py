@@ -327,7 +327,7 @@ class CNNRNNCTCModule(pl.LightningModule):
         )
 
         # LSTM for Temporal Modeling
-        self.rnn = nn.LSTM(
+        self.rnn = nn.GRU(
             input_size=num_features,
             hidden_size=rnn_hidden_size,
             num_layers=rnn_num_layers,
