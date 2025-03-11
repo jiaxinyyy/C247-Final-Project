@@ -4,7 +4,7 @@ defaults:
   - model: tds_conv_ctc
   - optimizer: adam
   - lr_scheduler: linear_warmup_cosine_annealing
-  - decoder: ctc_beam
+  - decoder: ctc_greedy
   - cluster: local
   - _self_
 
