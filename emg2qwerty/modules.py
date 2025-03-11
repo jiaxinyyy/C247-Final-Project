@@ -279,32 +279,62 @@ class TDSConvEncoder(nn.Module):
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         return self.tds_conv_blocks(inputs)  # (T, N, num_features)
 
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-torch.log(torch.tensor(10000.0)) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.pe = pe.unsqueeze(0)
+    
+    def forward(self, x):
+        return x + self.pe[:, :x.size(1)].to(x.device)
 
-class RecurrentLayer(nn.Module):
-    """A bidirectional or unidirectional LSTM layer for sequence modeling.
-
-    Args:
-        input_size (int): The number of input features.
-        hidden_size (int): The number of hidden units in the LSTM.
-        num_layers (int): Number of LSTM layers.
-        bidirectional (bool): Whether the LSTM is bidirectional.
-    """
-
-    def __init__(self, input_size: int, hidden_size: int, num_layers: int, bidirectional: bool = True):
-        super().__init__()
-        self.lstm = nn.LSTM(
-            input_size=input_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            batch_first=False,  # (T, N, F)
-            bidirectional=bidirectional
-        )
-
-        # Compute output size (double hidden size if bidirectional)
-        self.output_size = hidden_size * (2 if bidirectional else 1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Pass input through the LSTM layer."""
-        x, _ = self.lstm(x)  # LSTM outputs (T, N, hidden_size * 2 if bidirectional)
+class CNNFeatureExtractor(nn.Module):
+    def __init__(self, input_size, d_model):
+        super(CNNFeatureExtractor, self).__init__()
+        self.conv1 = nn.Conv1d(in_channels=input_size, out_channels=64, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv1d(in_channels=64, out_channels=d_model, kernel_size=3, padding=1)
+        self.relu = nn.ReLU()
+        self.pool = nn.AdaptiveAvgPool1d(None)  # Dynamically determine output size
+    
+    def forward(self, x):
+        x = x.permute(0, 2, 1)  # Change shape to (batch, channels, timesteps)
+        x = self.relu(self.conv1(x))
+        x = self.relu(self.conv2(x))
+        self.pool.output_size = x.shape[-1]  # Adaptively set output size to input length
+        x = self.pool(x)
+        x = x.permute(0, 2, 1)  # Back to (batch, timesteps, d_model)
         return x
 
+class TransformerEncoder(nn.Module):
+    def __init__(
+        self,
+        num_features: int,
+        d_model: int = 128,
+        num_heads: int = 8,
+        num_layers: int = 4
+    ) -> None:
+        super().__init__()
+
+        self.embedding = nn.Linear(num_features, d_model)
+        self.pos_encoder = PositionalEncoding(d_model)
+        self.feature_extractor = CNNFeatureExtractor(num_features, d_model)
+        self.transformer = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(d_model=d_model, nhead=num_heads),
+            num_layers=num_layers
+        )
+
+        self.norm = nn.LayerNorm(d_model)
+        self.out = nn.Linear(d_model, num_features)
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        x = self.feature_extractor(inputs)
+        x = self.pos_encoder(x)
+        x = self.norm(x)
+        x = self.transformer(x)
+        x = self.norm(x)
+        x = self.out(x)
+        return x

@@ -1,15 +1,10 @@
 # @package _global_
 module:
-  _target_: emg2qwerty.lightning.CNNRNNCTCModule
+  _target_: emg2qwerty.lightning.TransformerCTCModule
   in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
   mlp_features: [384]
   block_channels: [24, 24, 24, 24]
   kernel_width: 32  # Total temporal receptive field of 125 samples given 4 layers
-  
-  # New LSTM Parameters
-  rnn_hidden_size: 256    # Number of hidden units in the LSTM
-  rnn_num_layers: 2  # Number of stacked LSTM layers
-  bidirectional: True  # Use BiLSTM for better sequence modeling
 
 datamodule:
   _target_: emg2qwerty.lightning.WindowedEMGDataModule
