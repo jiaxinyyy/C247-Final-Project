@@ -249,8 +249,8 @@ class SpecAugment:
 class TimeStretch:
     """Applies time stretching augmentation and pads/truncates to a common length."""
 
-    min_rate: float = 0.95
-    max_rate: float = 1
+    min_rate: float = 0.98
+    max_rate: float = 1.02
     hop_length: int | None = None  # Now correctly included
     n_freq: int = 33
     fixed_rate: float | None = None

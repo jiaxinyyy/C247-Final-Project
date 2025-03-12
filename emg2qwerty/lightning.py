@@ -290,7 +290,7 @@ from emg2qwerty.modules import (
 )
 
 
-class CNNRNNCTCModule(pl.LightningModule):
+class CNNGRUCTCModule(pl.LightningModule):
     NUM_BANDS: ClassVar[int] = 2
     ELECTRODE_CHANNELS: ClassVar[int] = 16
 
