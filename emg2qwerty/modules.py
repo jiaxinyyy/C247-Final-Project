@@ -298,15 +298,15 @@ class CNNFeatureExtractor(nn.Module):
         self.conv1 = nn.Conv1d(in_channels=input_size, out_channels=64, kernel_size=3, padding=1)
         self.conv2 = nn.Conv1d(in_channels=64, out_channels=d_model, kernel_size=3, padding=1)
         self.relu = nn.ReLU()
-        self.pool = nn.AdaptiveAvgPool1d(None)  # Dynamically determine output size
+        self.pool = nn.AdaptiveAvgPool1d(None)
     
     def forward(self, x):
-        x = x.permute(0, 2, 1)  # Change shape to (batch, channels, timesteps)
+        x = x.permute(0, 2, 1)
         x = self.relu(self.conv1(x))
         x = self.relu(self.conv2(x))
-        self.pool.output_size = x.shape[-1]  # Adaptively set output size to input length
+        self.pool.output_size = x.shape[-1]
         x = self.pool(x)
-        x = x.permute(0, 2, 1)  # Back to (batch, timesteps, d_model)
+        x = x.permute(0, 2, 1)
         return x
 
 class TransformerEncoder(nn.Module):
