@@ -154,95 +154,6 @@ class TemporalAlignmentJitter:
 
         return torch.stack([left, right], dim=self.stack_dim)
 
-
-@dataclass
-class LFCCExtraction:
-    def __init__(self, num_coeffs=13, sample_rate=2000, num_filters=16, n_fft=64):
-        self.num_coeffs = num_coeffs
-        self.sample_rate = sample_rate
-        self.num_filters = num_filters
-        self.n_fft = n_fft
-        self.linear_filterbank = self.create_linear_filterbank()
-
-    def create_linear_filterbank(self):
-        freqs = torch.linspace(0, self.sample_rate // 2, self.num_filters + 2)
-        filterbank = torch.zeros(self.num_filters, self.n_fft // 2 + 1)
-        for i in range(self.num_filters):
-            lower = freqs[i]
-            center = freqs[i + 1]
-            upper = freqs[i + 2]
-            for j in range(self.n_fft // 2 + 1):
-                freq = j * self.sample_rate / self.n_fft
-                if lower <= freq <= center:
-                    filterbank[i, j] = (freq - lower) / (center - lower)
-                elif center <= freq <= upper:
-                    filterbank[i, j] = (upper - freq) / (upper - center)
-        return filterbank
-
-    def apply_dct(self, spectrogram):
-        np_spectrogram = spectrogram.cpu().numpy()
-        np_dct = scipy.fft.dct(np_spectrogram, type=2, axis=-1, norm='ortho')
-        return torch.from_numpy(np_dct[:, :self.num_coeffs]).to(spectrogram.device)
-
-    def __call__(self, log_specgram):
-        print(f'input shape: {log_specgram.shape}')
-        time, left_right, channels, freq = log_specgram.shape
-        lfccs_list = []
-
-        for lr in range(left_right):
-            lr_spec = log_specgram[:, lr, :, :].permute(1, 2, 0)
-            print(f'lr_spec shape: {lr_spec.shape}')
-            spec_filtered = torch.matmul(self.linear_filterbank, torch.pow(10, lr_spec)).permute(2, 0, 1)
-            print(f'spec_filtered shape: {spec_filtered.shape}')
-            lfccs = self.apply_dct(torch.log(spec_filtered + 1e-6))
-            print(f'lfccs shape: {lfccs.shape}')
-            lfccs_list.append(lfccs)
-
-        print(f'prestack shape: {len(lfccs_list)}')
-        lfccs_combined = torch.stack(lfccs_list, dim=1)
-        print(f'lfccs_combined shape before rearrange: {lfccs_combined.shape}')
-
-        # Rearrange the dimensions
-        lfccs_rearranged = lfccs_combined.permute(0, 1, 3, 2)
-        print(f'lfccs_rearranged shape: {lfccs_rearranged.shape}')
-        return lfccs_rearranged
-
-
-@dataclass
-class MFCCExtraction:
-    def __init__(self, num_mfccs=13, sample_rate=2000, n_mels=40, n_fft=64):
-        self.num_mfccs = num_mfccs
-        self.sample_rate = sample_rate
-        self.n_mels = n_mels
-        self.n_fft = n_fft
-        self.mel_filterbank = torchaudio.transforms.MelScale(n_mels=self.n_mels, sample_rate=self.sample_rate, n_stft=self.n_fft // 2 + 1)
-
-    def apply_dct(self, spectrogram):
-        mfccs = torch.fft.dct(spectrogram, norm='ortho')
-        return mfccs[:, :self.num_mfccs]
-
-    def __call__(self, log_specgram):
-        time, left_right, channels, freq = log_specgram.shape
-        print(f"mfcc input: {log_specgram.shape}")
-        mfccs_list = []
-
-        for lr in range(left_right):
-            lr_spec = log_specgram[:, lr, :, :]
-            lr_spec = lr_spec.permute(2, 0, 1) #permute for filterbank
-            print(f"lr_spec shape: {lr_spec.shape}")
-
-            mel_spec = self.mel_filterbank(torch.pow(10, lr_spec)) #apply mel filterbank to linear spectrogram.
-            print(f"After filter bankes: {mel_spec.shape}")
-
-            mfccs = self.apply_dct(torch.log(mel_spec + 1e-6))
-            print(f'Apply DCT: {mfcc.shape}')
-            mfccs_list.append(mfccs.permute(1,2,0)) #permute back to correct shape.
-            print(f'mfcc len: {len(mfcc_list)}')
-
-        mfccs_combined = torch.stack(mfccs_list, dim=1)
-        print("mfcc output: {mfccs_combined.shape}")
-        return mfccs_combined
-
 @dataclass
 class LogSpectrogram:
     """Creates log10-scaled spectrogram from an EMG signal. In the case of
@@ -340,12 +251,12 @@ class TimeStretch:
 
     min_rate: float = 0.95
     max_rate: float = 1
-    hop_length: int | None = None  # Now correctly included
+    hop_length: int | None = None
     n_freq: int = 33
     fixed_rate: float | None = None
     target_channels: int = 16
     pad_mode: str = 'fixed'  # 'max' or 'fixed'
-    fixed_length: int = 622
+    fixed_length: int = 622 # fixed at 622, or avg length of the incoming data
     
     
     def __post_init__(self) -> None:
@@ -356,38 +267,26 @@ class TimeStretch:
 
     def __call__(self, waveform: torch.Tensor) -> torch.Tensor:
         # print(f"Original waveform shape: {waveform.shape}")
-
         if self.fixed_rate is None:
             rate = np.random.uniform(self.min_rate, self.max_rate)
             self.transform.fixed_rate = rate
 
         time_steps, channels, freq_bins = waveform.shape
         # print(f"Shape after unpacking: time_steps={time_steps}, channels={channels}, freq_bins={freq_bins}")
-
-        # Step 3: Convert to complex spectrogram (real and imaginary parts)
         real_part = waveform
         imaginary_part = torch.zeros_like(real_part)
         complex_spectrogram = torch.complex(real_part, imaginary_part)
-
-        # Step 4: Permute the tensor to [channels, freq_bins, time_steps]
         complex_spectrogram = complex_spectrogram.permute(1, 2, 0)
         # print(f"Shape after permute: {complex_spectrogram.shape}")
 
-        # Step 5: Apply time-stretch to each channel independently
         stretched_complex = []
         for channel in complex_spectrogram:
             stretched_complex.append(self.transform(channel))
         stretched_complex = torch.stack(stretched_complex, dim=0)
-
-        # Step 6: Get the real part of the stretched complex spectrogram
         stretched_real = stretched_complex.real
-
-        # Step 7: Revert permute to get back to original shape [time_steps, channels, freq_bins]
         stretched_real = stretched_real.permute(2, 0, 1)
-
+        
         # print(f"Final shape after time-stretching: {stretched_real.shape}")
-
-        # Step 8: Pad or truncate to a common length
         time_steps = stretched_real.shape[0]
 
         if self.pad_mode == 'max':
@@ -404,6 +303,5 @@ class TimeStretch:
             stretched_real = stretched_real[:(time_steps + pad_size), :, :]
 
         # print(f"Final shape after padding/truncating: {stretched_real.shape}")
-
         return stretched_real
 
