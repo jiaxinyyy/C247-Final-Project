@@ -249,13 +249,13 @@ class SpecAugment:
 class TimeStretch:
     """Applies time stretching augmentation and pads/truncates to a common length."""
 
-    min_rate: float = 0.95
-    max_rate: float = 1
-    hop_length: int | None = None  # Now correctly included
+    min_rate: float = 0.98
+    max_rate: float = 1.02
+    hop_length: int | None = None
     n_freq: int = 33
     fixed_rate: float | None = None
     target_channels: int = 16
-    pad_mode: str = 'fixed'  # 'max' or 'fixed'
+    pad_mode: str = 'fixed'
     fixed_length: int = 622
     
     
@@ -267,7 +267,6 @@ class TimeStretch:
 
     def __call__(self, waveform: torch.Tensor) -> torch.Tensor:
         # print(f"Original waveform shape: {waveform.shape}")
-
         if self.fixed_rate is None:
             rate = np.random.uniform(self.min_rate, self.max_rate)
             self.transform.fixed_rate = rate
