@@ -154,7 +154,6 @@ class TemporalAlignmentJitter:
 
         return torch.stack([left, right], dim=self.stack_dim)
 
-
 @dataclass
 class LogSpectrogram:
     """Creates log10-scaled spectrogram from an EMG signal. In the case of
@@ -255,8 +254,8 @@ class TimeStretch:
     n_freq: int = 33
     fixed_rate: float | None = None
     target_channels: int = 16
-    pad_mode: str = 'fixed'
-    fixed_length: int = 622
+    pad_mode: str = 'fixed'  # 'max' or 'fixed'
+    fixed_length: int = 622 # fixed at 622, or avg length of the incoming data
     
     
     def __post_init__(self) -> None:
@@ -273,31 +272,20 @@ class TimeStretch:
 
         time_steps, channels, freq_bins = waveform.shape
         # print(f"Shape after unpacking: time_steps={time_steps}, channels={channels}, freq_bins={freq_bins}")
-
-        # Step 3: Convert to complex spectrogram (real and imaginary parts)
         real_part = waveform
         imaginary_part = torch.zeros_like(real_part)
         complex_spectrogram = torch.complex(real_part, imaginary_part)
-
-        # Step 4: Permute the tensor to [channels, freq_bins, time_steps]
         complex_spectrogram = complex_spectrogram.permute(1, 2, 0)
         # print(f"Shape after permute: {complex_spectrogram.shape}")
 
-        # Step 5: Apply time-stretch to each channel independently
         stretched_complex = []
         for channel in complex_spectrogram:
             stretched_complex.append(self.transform(channel))
         stretched_complex = torch.stack(stretched_complex, dim=0)
-
-        # Step 6: Get the real part of the stretched complex spectrogram
         stretched_real = stretched_complex.real
-
-        # Step 7: Revert permute to get back to original shape [time_steps, channels, freq_bins]
         stretched_real = stretched_real.permute(2, 0, 1)
-
+        
         # print(f"Final shape after time-stretching: {stretched_real.shape}")
-
-        # Step 8: Pad or truncate to a common length
         time_steps = stretched_real.shape[0]
 
         if self.pad_mode == 'max':
@@ -314,6 +302,5 @@ class TimeStretch:
             stretched_real = stretched_real[:(time_steps + pad_size), :, :]
 
         # print(f"Final shape after padding/truncating: {stretched_real.shape}")
-
         return stretched_real
 

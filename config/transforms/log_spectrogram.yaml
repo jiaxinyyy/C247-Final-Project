@@ -38,7 +38,7 @@ transforms:
     - ${band_rotation}
     - ${temporal_jitter}
     - ${logspec}
-    # - ${time_stretch}
+    - ${time_stretch}
     - ${specaug}
 
   val:
