@@ -18,3 +18,7 @@ Baseline model comes from the [emg2qwerty](https://github.com/joe-lin-tech/emg2q
 | 10 | 17.65618  | 17.65618  | 17.80851  |
 | 32 | 23.57111  | 23.57111  | 23.2980   |
 ---
+
+## Note on ,gitignore
+- Data can be downloaded from -link data later-
+- All logs saved to /logs will not be stored in repository
