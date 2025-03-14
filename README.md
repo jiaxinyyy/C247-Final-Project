@@ -1,5 +1,5 @@
 ## UCLA ECE C247 (W25) - Final Project
-# Exploring Model Architectures for Predicting Keystrokes from sEMG Signals
+# Predicting Keystrokes from Electromyography Signals: Exploring Model Architectures and Data Preprocessing
 #### Authors:
 Megha Maran (megham01@g.ucla.edu), Emily Tang (etangs@ucla.edu), Jiaxin Yang (yangjiaxin0821@g.ucla.edu), and Jinsong Yang (jinsong.yang2000@gmail.com)
 
@@ -8,7 +8,7 @@ Megha Maran (megham01@g.ucla.edu), Emily Tang (etangs@ucla.edu), Jiaxin Yang (ya
 Baseline model comes from the [emg2qwerty](https://github.com/joe-lin-tech/emg2qwerty/tree/main) codebase. All preprocessing steps from the baseline were carried into the new models. A new "time-stretch" augmentation was introduced for comparison. (see branches for different architectures)
 - Baseline (TDS-CNN) with preprocessing
 - RNN
-- Transformer
+- Transformer (Current Branch)
 - CNN + GRU
 - CNN + LSTM
 
@@ -20,5 +20,5 @@ Baseline model comes from the [emg2qwerty](https://github.com/joe-lin-tech/emg2q
 ---
 
 ## Note on .gitignore
-- Data can be downloaded from -link data later-
+- Data can be downloaded [here](https://ucla.app.box.com/s/e54bnjvy6hl33ao3jhvz7711q5iwkws5)
 - All logs saved to /logs will not be stored in repository
