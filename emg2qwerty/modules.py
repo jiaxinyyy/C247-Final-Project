@@ -279,32 +279,3 @@ class TDSConvEncoder(nn.Module):
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         return self.tds_conv_blocks(inputs)  # (T, N, num_features)
 
-
-class RecurrentLayer(nn.Module):
-    """A bidirectional or unidirectional LSTM layer for sequence modeling.
-
-    Args:
-        input_size (int): The number of input features.
-        hidden_size (int): The number of hidden units in the LSTM.
-        num_layers (int): Number of LSTM layers.
-        bidirectional (bool): Whether the LSTM is bidirectional.
-    """
-
-    def __init__(self, input_size: int, hidden_size: int, num_layers: int, bidirectional: bool = True):
-        super().__init__()
-        self.lstm = nn.LSTM(
-            input_size=input_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            batch_first=False,  # (T, N, F)
-            bidirectional=bidirectional
-        )
-
-        # Compute output size (double hidden size if bidirectional)
-        self.output_size = hidden_size * (2 if bidirectional else 1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Pass input through the LSTM layer."""
-        x, _ = self.lstm(x)  # LSTM outputs (T, N, hidden_size * 2 if bidirectional)
-        return x
-
