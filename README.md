@@ -1,5 +1,5 @@
 ## UCLA ECE C247 (W25) - Final Project
-# Exploring Model Architectures for Predicting Keystrokes from sEMG Signals
+# Predicting Keystrokes from Electromyography Signals: Exploring Model Architectures and Data Preprocessing
 #### Authors:
 Megha Maran (megham01@g.ucla.edu), Emily Tang (etangs@ucla.edu), Jiaxin Yang (yangjiaxin0821@g.ucla.edu), and Jinsong Yang (jinsong.yang2000@gmail.com)
 
