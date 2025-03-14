@@ -1,27 +1,24 @@
-# Final Project for W25 ECE C147/247
+## UCLA ECE C247 (W25) - Final Project
+# Predicting Keystrokes from Electromyography Signals: Exploring Model Architectures and Data Preprocessing
+#### Authors:
+Megha Maran (megham01@g.ucla.edu), Emily Tang (etangs@ucla.edu), Jiaxin Yang (yangjiaxin0821@g.ucla.edu), and Jinsong Yang (jinsong.yang2000@gmail.com)
 
-### Setup
-1) Clone this repository to your local system
-2) Copy ```/data```folder into main directory 
-    - i.e. ```{local path}/C247-Final-Project/data```
-3) Run notebook to train!
 
-### Code in /emg2qwerty
-- ```lightning.py```
-    - TDSConvCTCModule(pl.LightningModule) - class to assemble baseline model architecture
-    - WindowedEMGDataModule(pl.LightningDataModule) - Contains dataset loader (Do not touch)
-- ```modules.py```
-    - Defines layers assembled in lightning.py
-    - TODO: Add new layer architecture here
-- ```transforms.py```
-    - contains data augmentations functions, loaded into WindowedEMGDataModule in lightning.py
-    - TODO: Try different data augmentation methods
-- ```config/*.yaml```
-    - Adjust hyperparameters here for training
+### Architectures Explored:
+Baseline model comes from the [emg2qwerty](https://github.com/joe-lin-tech/emg2qwerty/tree/main) codebase. All preprocessing steps from the baseline were carried into the new models. A new "time-stretch" augmentation was introduced for comparison. (see branches for different architectures)
+- Baseline (TDS-CNN) with preprocessing
+- RNN
+- Transformer
+- **CNN + GRU** (Current Branch)
+- CNN + LSTM
 
-To train:
-```
-!python -m emg2qwerty.train \
-  user="single_user" \
-  trainer.accelerator=gpu trainer.devices=1 trainer.max_epochs=30
-```
+## Best Performing Architecture: CNN + GRU
+|Batch|Train/CER|Val/CER|Test/CER|
+|----------|-----------|-----------|-----------|
+| 10 | 17.65618  | 17.65618  | 17.80851  |
+| 32 | 23.57111  | 23.57111  | 23.2980   |
+---
+
+## Note on .gitignore
+- Data can be downloaded [here](https://ucla.app.box.com/s/e54bnjvy6hl33ao3jhvz7711q5iwkws5)
+- All logs saved to /logs will not be stored in repository
