@@ -10,7 +10,7 @@ Baseline model comes from the [emg2qwerty](https://github.com/joe-lin-tech/emg2q
 - RNN
 - Transformer
 - CNN + GRU
-- CNN + LSTM
+- **CNN + LSTM** (Current Branch)
 
 ## Best Performing Architecture: CNN + GRU
 |Batch|Train/CER|Val/CER|Test/CER|
@@ -20,5 +20,5 @@ Baseline model comes from the [emg2qwerty](https://github.com/joe-lin-tech/emg2q
 ---
 
 ## Note on .gitignore
-- Data can be downloaded from -link data later-
+- Data can be downloaded [here](https://ucla.app.box.com/s/e54bnjvy6hl33ao3jhvz7711q5iwkws5)
 - All logs saved to /logs will not be stored in repository
