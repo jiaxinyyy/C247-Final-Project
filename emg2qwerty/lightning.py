@@ -312,7 +312,6 @@ class CNNRNNCTCModule(pl.LightningModule):
 
         num_features = self.NUM_BANDS * mlp_features[-1]
 
-        # Model Architecture
         self.spectrogram_norm = SpectrogramNorm(channels=self.NUM_BANDS * self.ELECTRODE_CHANNELS)
         self.mlp = MultiBandRotationInvariantMLP(
             in_features=in_features,
@@ -326,25 +325,22 @@ class CNNRNNCTCModule(pl.LightningModule):
             kernel_width=kernel_width,
         )
 
-        # LSTM for Temporal Modeling
         self.rnn = nn.LSTM(
             input_size=num_features,
             hidden_size=rnn_hidden_size,
             num_layers=rnn_num_layers,
-            batch_first=False,  # Shape: (T, N, F)
+            batch_first=False, 
             bidirectional=bidirectional
         )
 
-        # Final Linear Projection
+
         rnn_output_size = rnn_hidden_size * (2 if bidirectional else 1)
         self.output_layer = nn.Linear(rnn_output_size, charset().num_classes)
         self.log_softmax = nn.LogSoftmax(dim=-1)
 
-        # Loss and Decoding
         self.ctc_loss = nn.CTCLoss(blank=charset().null_class)
         self.decoder = instantiate(decoder)
 
-        # Metrics
         metrics = MetricCollection([CharacterErrorRates()])
         self.metrics = nn.ModuleDict(
             {
@@ -358,11 +354,7 @@ class CNNRNNCTCModule(pl.LightningModule):
         x = self.mlp(x)
         x = self.flatten(x)
         x = self.conv_encoder(x)
-
-        # LSTM Processing
         x, _ = self.rnn(x)
-
-        # Final Projection
         x = self.output_layer(x)
         return self.log_softmax(x)
 
@@ -373,28 +365,24 @@ class CNNRNNCTCModule(pl.LightningModule):
         targets = batch["targets"]
         input_lengths = batch["input_lengths"]
         target_lengths = batch["target_lengths"]
-        N = len(input_lengths)  # batch size
+        N = len(input_lengths)
 
         emissions = self.forward(inputs)
-
-        # Adjust lengths for CTC loss
         T_diff = inputs.shape[0] - emissions.shape[0]
         emission_lengths = input_lengths - T_diff
 
         loss = self.ctc_loss(
-            log_probs=emissions,  # (T, N, num_classes)
-            targets=targets.transpose(0, 1),  # (T, N) -> (N, T)
-            input_lengths=emission_lengths,  # (N,)
-            target_lengths=target_lengths,  # (N,)
+            log_probs=emissions,
+            targets=targets.transpose(0, 1),
+            input_lengths=emission_lengths,
+            target_lengths=target_lengths,
         )
 
-        # Decode predictions
         predictions = self.decoder.decode_batch(
             emissions=emissions.detach().cpu().numpy(),
             emission_lengths=emission_lengths.detach().cpu().numpy(),
         )
 
-        # Update metrics
         metrics = self.metrics[f"{phase}_metrics"]
         targets = targets.detach().cpu().numpy()
         target_lengths = target_lengths.detach().cpu().numpy()
